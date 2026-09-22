@@ -97,3 +97,24 @@ COMMIT;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admins   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+
+-- The Vite client uses the publishable anon key. Projects are public, while
+-- contact submissions are insert-only for visitors. Admin message management
+-- should be protected with Supabase Auth or a server-side edge function; the
+-- frontend never receives a service-role key.
+DROP POLICY IF EXISTS "Public can read projects" ON projects;
+CREATE POLICY "Public can read projects"
+  ON projects FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "Public can submit messages" ON messages;
+CREATE POLICY "Public can submit messages"
+  ON messages FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    char_length(name) BETWEEN 2 AND 100
+    AND char_length(email) BETWEEN 3 AND 150
+    AND char_length(message) BETWEEN 10 AND 5000
+    AND (subject IS NULL OR char_length(subject) <= 200)
+  );
