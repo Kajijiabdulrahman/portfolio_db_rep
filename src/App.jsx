@@ -77,21 +77,42 @@ function Contact() {
   const [sending, setSending] = useState(false)
   async function handleSubmit(event) {
     event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    const values = Object.fromEntries(form.entries())
-    if (values.name.trim().length < 2 || !/^\S+@\S+\.\S+$/.test(values.email) || values.message.trim().length < 10) {
+    const form = event.currentTarget
+    const name = String(form.elements.name.value ?? '').trim()
+    const email = String(form.elements.email.value ?? '').trim()
+    const subject = String(form.elements.subject.value ?? '').trim()
+    const message = String(form.elements.message.value ?? '').trim()
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+
+    if (name.length < 2 || !emailPattern.test(email) || message.length < 10) {
       setStatus({ type: 'error', text: 'Please provide a valid name, email, and a message of at least 10 characters.' })
       return
     }
+
     if (!supabase) {
       setStatus({ type: 'error', text: 'The contact form is not configured yet. Add the Supabase environment variables and try again.' })
       return
     }
+
     setSending(true)
-    const { error } = await supabase.from('messages').insert({ name: values.name.trim(), email: values.email.trim(), subject: values.subject.trim() || null, message: values.message.trim() })
-    setSending(false)
-    if (error) setStatus({ type: 'error', text: 'Sorry — something went wrong while sending your message. Please try again in a moment.' })
-    else { setStatus({ type: 'success', text: `Thank you, ${values.name.trim()}! Your message has been sent — I will reply as soon as I can.` }); event.currentTarget.reset() }
+    try {
+      const { error } = await supabase.from('messages').insert({
+        name,
+        email,
+        subject: subject || null,
+        message,
+      })
+
+      if (error) {
+        setStatus({ type: 'error', text: 'Sorry — something went wrong while sending your message. Please try again in a moment.' })
+        return
+      }
+
+      setStatus({ type: 'success', text: `Thank you, ${name}! Your message has been sent — I will reply as soon as I can.` })
+      form.reset()
+    } finally {
+      setSending(false)
+    }
   }
   return <section className="section section-first"><div className="container"><SectionHeading title="Get In Touch" subtitle="Have a question, an idea, or an opportunity? My inbox is always open." /><div className="contact-grid"><div className="contact-info"><div className="info-card reveal"><span className="info-icon"><i className="bi bi-person-fill" /></span><div><h3 className="info-title">Name</h3><p className="info-text">Abdulrahman Abubakar Kajiji</p></div></div><div className="info-card reveal"><span className="info-icon"><i className="bi bi-envelope-fill" /></span><div><h3 className="info-title">Email</h3><p className="info-text"><a className="info-link" href="mailto:kajijiabdulrahman39@gmail.com">kajijiabdulrahman39@gmail.com</a></p></div></div><div className="info-card reveal"><span className="info-icon"><i className="bi bi-geo-alt-fill" /></span><div><h3 className="info-title">Location</h3><p className="info-text">Nassarawa Local Government, Kano State, Nigeria</p></div></div></div><div className="contact-form-card reveal">{status && <div className={`alert alert-${status.type}`} role="alert"><i className={`bi ${status.type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}`} /><span>{status.text}</span></div>}<form className="contact-form" onSubmit={handleSubmit}><div className="form-field"><label htmlFor="name">Name <span className="req">*</span></label><input id="name" name="name" placeholder="Your full name" required /></div><div className="form-field"><label htmlFor="email">Email <span className="req">*</span></label><input id="email" name="email" type="email" placeholder="you@example.com" required /></div><div className="form-field"><label htmlFor="subject">Subject <span className="optional">(optional)</span></label><input id="subject" name="subject" placeholder="What is this about?" /></div><div className="form-field"><label htmlFor="message">Message <span className="req">*</span></label><textarea id="message" name="message" rows="6" required placeholder="Tell me a little about your project or question (min. 10 characters)..." /></div><button className="btn btn-primary btn-block" disabled={sending}><i className="bi bi-send-fill" /> {sending ? 'Sending...' : 'Send Message'}</button></form></div></div></div></section>
 }
