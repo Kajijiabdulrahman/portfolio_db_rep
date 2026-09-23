@@ -230,6 +230,8 @@ small { font-size: var(--fs-small); }
 .form-field .req { color: var(--sun-1); }
 .form-field .optional { color: var(--muted); font-weight: 400; font-size: var(--fs-small); }
 
+.form-field input,
+.form-field textarea,
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -241,6 +243,7 @@ textarea {
     background: var(--bg);
     color: var(--text);
     font: inherit;
+    box-sizing: border-box;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 textarea { resize: vertical; min-height: 120px; }
